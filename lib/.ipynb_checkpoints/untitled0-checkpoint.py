@@ -19,7 +19,37 @@ matplotlib.rc('image',cmap='viridis')
 
 # %matplotlib inline
 
-# +
+
+def sliced_opt_distance(X,Y,n_projections,Lambda_list):
+    projections=random_projections(d,n_projections,0)
+    X_sliced=np.dot(projections,X.T)
+    Y_sliced=np.dot(projections,Y.T)
+    indices_X = np.argsort(X_sliced)
+    indices_Y = np.argsort(Y_sliced)
+    X_sliced_s=X_sliced.copy()
+    Y_sliced_s=Y_sliced.copy()
+    X_sliced_s.sort(1)
+    Y_sliced_s.sort(1)
+    costs,plans_s=allplans_s(X_sliced_s,Y_sliced_s,Lambda_list)
+    plans=np.zeros((n_projections,n))
+    for i in range(n_projections):
+        plans[i]=recover_indice(indices_X[i],indices_Y[i],plans_s[i])
+    #plans=recover_indice_M(indices_X,indices_Y,plans)
+    cost=np.sum(costs)/n_projections
+    return cost,plans
+
+def cost_compute(X_sliced_s,Y_sliced_s,plans,Lambda_list):
+    n_projections,n=X_sliced_s.shape
+    
+    D=plans>=0
+    mass=np.sum(D,1)
+    costs=np.zeros(n_projections)
+    for i in range(n_projections):
+        X_take=X_sliced_s[i][D[i]]
+        Y_take=Y_sliced_s[i][plans[D[i]]]
+        costs[i]=np.sum(cost_funciont(X_take,Y_take))+2*Lambda(n-mass[i])
+    return costs
+
 def getCost(x,y,p=2.):
     """Squared Euclidean distance cost for two 1d arrays"""
     c=(x.reshape((-1,1))-y.reshape((1,-1)))

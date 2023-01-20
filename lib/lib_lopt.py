@@ -19,10 +19,11 @@ import os
 import ot
 
 import numba as nb
-from typing import Tuple #,List
+#from typing import Tuple #,List
 from numba.typed import List
 import matplotlib.pyplot as plt
 
+epsilon=1e-10
 @nb.njit()
 def cost_function(x,y): 
     ''' 
@@ -107,7 +108,7 @@ def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000):
     cost_M=cost_matrix_d(X,Y)
     cost_M1=np.zeros((n+1,m+1))
     cost_M1[0:n,0:m]=cost_M-2*Lambda
-    gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax)
+    gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax,numThreads=10)
     gamma=gamma1[0:n,0:m]
     cost=np.sum(cost_M*gamma)
     destroyed_mass=np.sum(mu)+np.sum(nu)-2*np.sum(gamma)
@@ -123,45 +124,55 @@ def opt_pr(X,Y,mu,nu,mass,numItermax=100000):
     cost=np.sum(cost_M*gamma)
     return cost,gamma
 
-def lopt_embedding(X0,Xi,p0,pi,Lambda):
+def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000):
     n,d=X0.shape
-    cost,gamma,penualty=opt_lp(X0,Xi,p0,pi,Lambda)
+    cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda)
 #   cost,plan=opt_pr()
-    n=X0.shape[0]
-    domain=np.sum(gamma,1)>0
-    pi_hat=np.sum(gamma,1) # martial of plan 
+    N0=X0.shape[0]
+    domain=np.sum(gamma,1)>1e-10
+    p1_hat=np.sum(gamma,1) # martial of plan 
     # compute barycentric projetion 
-    # (Xi_hat, pi_hat) is the barycentric projection 
-    Xi_hat=np.full((n,d),np.inf) # barycentric projection
-    Xi_hat[domain]=gamma.dot(Xi)[domain]/np.expand_dims(pi_hat,1)[domain]
+    X1_hat=np.zeros((N0,d)) 
+    X1_hat[domain]=gamma.dot(X1)[domain]/np.expand_dims(p1_hat,1)[domain]
     
-    # separate barycentric into U_i 
-    Ui=Xi_hat-X0
-    return Ui,pi_hat,np.sum(p0),np.sum(pi)
+    # separate barycentric into U_1 and p1_hat,M1
+    U1=X1_hat-X0
+    M1=np.sum(p1)-np.sum(p1_hat)
+    return U1,p1_hat,M1
 
-def lopt_embedding_pr(Xi,X0,pi,p0,Lambda):
+def lopt_embedding_pr(Xi,X0,p1,p0,Lambda):
     n,d=X0.shape
-    cost,gamma=opt_pr(X0,Xi,p0,pi,Lambda)
+    cost,gamma=opt_pr(X0,Xi,p0,p1,Lambda)
     n=X0.shape[0]
-    domain=np.sum(gamma,1)>0
-    pi_hat=np.sum(gamma,1)
+    domain=np.sum(gamma,1)>1e-10
+    p1_hat=np.sum(gamma,1)
     Xi_hat=np.full((n,d),np.inf)
-    Xi_hat[domain]=gamma.dot(Xi)[domain]/np.expand_dims(pi_hat,1)[domain]
-    Ui=Xi_hat-X0
-    return Ui,pi_hat
+    Xi_hat[domain]=gamma.dot(Xi)[domain]/np.expand_dims(p1_hat,1)[domain]
+    U1=Xi_hat-X0
+    return U1,p1_hat
 
-def vector_norm(Ui,pi_hat):
-    domain=pi_hat>0
-    Ui_take=Ui[domain]
-    norm2=np.sum((Ui_take.T)**2*pi_hat[domain])
-    return norm2
 
-def vector_norm_penualty(Ui,pi_hat,mass_total,Lambda):
-    domain=pi_hat>0
-    Ui_take=Ui[domain]
-    norm2=np.sum((Ui_take.T)**2*pi_hat[domain]) # transportation cost
-    penualty=Lambda*(mass_total-2*np.sum(pi_hat[domain]))
+# def vector_norm(U1,p1_hat): 
+#     norm2=np.sum((U1.T)**2*p1_hat[domain])
+#     return norm2
+
+# def vector_penalty(p0_hat,p1_hat,M1,Lambda): 
+#     penalty=Lambda*(np.abs(p0_hat-p1_hat)+M1)
+#     return penalty
+
+# def vector_minus(U1,U2,p1_hat,P2_hat):
+#     p1j_hat=np.minimum(p1_hat,P2_hat)
+#     diff=np.full(n,0)
+#     diff=U1-U2
+#     return diff,P_ij
+
+
+def lopt(U1,U2,p1_hat,p2_hat,Lambda,M1=.0,M2=.0):
+    p12_hat=np.minimum(p1_hat,p2_hat)
+    norm2=np.sum(np.minimum(np.sum((U1-U2)**2,1),2*Lambda)*p12_hat)
+    penualty=Lambda*(np.sum(np.abs(p1_hat-p2_hat))+M1+M2)
     return norm2, penualty
+
     
     
     
@@ -178,15 +189,6 @@ def vector_norm_penualty(Ui,pi_hat,mass_total,Lambda):
 #     return norm, penualty
 
 
-def lopt_vector_minus(Ui,Uj,pi_hat,Pj_hat):
-    pij_hat=np.minimum(pi_hat,Pj_hat)
-    n=Ui.shape[0]
-    domain_ij=p0_Tij>0
-    Ui_take=Ui[domain_ij]
-    Uj_take=Uj[domain_ij]
-    diff=np.full(n,np.inf)
-    diff[domain_ij]=Ui_take+Uj_take
-    return Sum,P_ij_hat
 
 
 
