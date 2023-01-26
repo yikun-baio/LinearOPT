@@ -24,6 +24,35 @@ from numba.typed import List
 import matplotlib.pyplot as plt
 
 epsilon=1e-10
+
+
+@nb.njit(['float64[:,:](int64,int64,int64)'],fastmath=True)
+def random_projections(d,n_projections,Type=0):
+    '''
+    input: 
+    d: int 
+    n_projections: int
+
+    output: 
+    projections: d*n torch tensor
+
+    '''
+    np.random.seed(0)
+    if Type==0:
+        Gaussian_vector=np.random.normal(0,1,size=(d,n_projections)) #.astype(np.float64)
+        projections=Gaussian_vector/np.sqrt(np.sum(np.square(Gaussian_vector),0))
+        projections=projections.T
+
+    elif Type==1:
+        r=np.int64(n_projections/d)+1
+        projections=np.zeros((d*r,d)) #,dtype=np.float64)
+        for i in range(r):
+            H=np.random.randn(d,d) #.astype(np.float64)
+            Q,R=np.linalg.qr(H)
+            projections[i*d:(i+1)*d]=Q
+        projections=projections[0:n_projections]
+    return projections
+
 @nb.njit()
 def cost_function(x,y): 
     ''' 
@@ -92,6 +121,17 @@ def cost_matrix_d(X,Y):
     return M
 
 
+def lot_embedding(X0,X1,p0,p1,numItermax=100000):
+    C=cost_matrix_d(X0,X1)
+    gamma=ot.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    N0,d=X0.shape
+    X1_hat=gamma.dot(X1)/np.expand_dims(p0,1)
+    U1=X1_hat-X0
+    return U1
+
+# def vector_norm(U1,p0):
+#     norm2=np.sum((U1.T)**2*p1_hat[domain])
+#     return norm2
 
 def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000):
     n,d=X.shape
@@ -111,8 +151,8 @@ def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000):
     gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax,numThreads=10)
     gamma=gamma1[0:n,0:m]
     cost=np.sum(cost_M*gamma)
-    destroyed_mass=np.sum(mu)+np.sum(nu)-2*np.sum(gamma)
-    penualty=destroyed_mass*Lambda
+    #destroyed_mass=np.sum(mu)+np.sum(nu)-2*np.sum(gamma)
+    penualty=Lambda*(np.sum(mu)+np.sum(nu)-2*np.sum(gamma))
     return cost,gamma,penualty
 
 
@@ -120,19 +160,19 @@ def opt_pr(X,Y,mu,nu,mass,numItermax=100000):
     n,d=X.shape
     m=Y.shape[0]
     cost_M=cost_matrix_d(X,Y)
-    gamma=ot.partial.partial_wasserstein(mu,nu,cost_M,m=mass,nb_dummies=n+m)
+    gamma=ot.partial.partial_wasserstein(mu,nu,cost_M,m=mass,nb_dummies=n+m,numItermax=numItermax)
     cost=np.sum(cost_M*gamma)
     return cost,gamma
 
 def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000):
     n,d=X0.shape
-    cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda)
+    cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda,numItermax=numItermax)
 #   cost,plan=opt_pr()
     N0=X0.shape[0]
     domain=np.sum(gamma,1)>1e-10
     p1_hat=np.sum(gamma,1) # martial of plan 
     # compute barycentric projetion 
-    X1_hat=np.zeros((N0,d)) 
+    X1_hat=X0.copy() 
     X1_hat[domain]=gamma.dot(X1)[domain]/np.expand_dims(p1_hat,1)[domain]
     
     # separate barycentric into U_1 and p1_hat,M1
@@ -174,8 +214,51 @@ def lopt(U1,U2,p1_hat,p2_hat,Lambda,M1=.0,M2=.0):
     return norm2, penualty
 
     
-    
-    
+   
+
+def lot_barycenter(Xi_list,pi_list,X0_init,p0, weights, numItermax=100000,numItermax_LP=100000,stopThr=1e-7):
+    K=weights.shape[0]
+    N0,d=X0_init.shape
+    Ui_list=np.zeros((K,N0,d))
+    weights=np.ascontiguousarray(weights)
+    weights=weights.reshape(K,1,1)
+    X0=X0_init
+    for iter in range(numItermax):
+        for i in range(K):
+            Xi=Xi_list[i]
+            pi=pi_list[i]
+            Ui=lot_embedding(X0,Xi,p0,pi,numItermax=numItermax_LP)
+            Ui_list[i]=Ui
+        U_bar=np.sum(Ui_list*weights,0)
+        X_bar=X0+U_bar    
+        error = np.sum((X_bar - X0)**2)
+        X0=X_bar
+        if error<=stopThr:
+            break
+        
+    return X0
+
+def lopt_barycenter(Xi_list,pi_list,X0_init,p0, weights,Lambda, numItermax=100000,numItermax_LP=100000,stopThr=1e-4, numThreads=1):
+    K=weights.shape[0]
+    N0,d=X0_init.shape
+    Ui_list=np.zeros((K,N0,d))
+    weights=np.ascontiguousarray(weights)
+    weights=weights.reshape((K,1,1))
+    X0=X0_init
+    for iter in range(numItermax):
+        for i in range(K):
+            Xi=Xi_list[i]
+            pi=pi_list[i]
+            Ui,pi_hat,Mi=lopt_embedding(X0,Xi,p0,pi,Lambda,numItermax=numItermax_LP)
+            Ui_list[i]=Ui
+        U_bar=np.sum(Ui_list*weights,0)
+        X_bar=X0+U_bar    
+        error = np.sum((X_bar - X0)**2)/np.linalg.norm(X0)
+        X0=X_bar
+        if error<=stopThr:
+            break
+    return X0
+
 
 
 # def vector_norm(Vi,p0_Ti,total_mass,Lambda):
