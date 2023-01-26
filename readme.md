@@ -6,7 +6,7 @@ Install [numba](https://numba.pydata.org/), [pytorch](https://pytorch.org), [pyt
 
 
 # Bakcground: Optimal partial transport  
-Choose open set $\Omega\subset\mathbb{R}^d$, let $\mathcal{M}_+(\Omega)$ denote the set of all positive randon measures defined on $\Omega$ and select $\mu^0,\mu^1,\mu^2$. 
+Choose open set $\Omega\subset\mathbb{R}^d$, let $M_+(\Omega)$ denote the set of all positive randon measures defined on $\Omega$ and select $\mu^0,\mu^1,\mu^2$. 
 The following are the kantorovich formulation: 
 $$OPT(\mu^0,\mu^1):=\inf_{\gamma\in\Gamma_{\leq}(\mu^0,\mu^1)}\int_{\Omega^2}\|x-y\|^2d\gamma(x,y)+\lambda(|\mu^0|+|\mu^1|-2|\gamma|) \hspace{1em}(1)$$
 
