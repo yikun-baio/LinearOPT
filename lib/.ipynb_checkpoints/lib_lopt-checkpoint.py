@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Oct 19 15:52:28 2022
-
 @author: baly
 """
 
@@ -23,6 +22,7 @@ import numba as nb
 from numba.typed import List
 import matplotlib.pyplot as plt
 
+from ot.lp.emd_wrap import emd_c, check_result, emd_1d_sorted
 epsilon=1e-10
 
 
@@ -120,10 +120,12 @@ def cost_matrix_d(X,Y):
     M=np.sum(cost_function(X1,Y1),2)
     return M
 
-
+#@nb.jit()
 def lot_embedding(X0,X1,p0,p1,numItermax=100000):
     C=cost_matrix_d(X0,X1)
-    gamma=ot.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    #gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    Gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
+    result_code_string = check_result(result_code)
     N0,d=X0.shape
     X1_hat=gamma.dot(X1)/np.expand_dims(p0,1)
     U1=X1_hat-X0
@@ -133,7 +135,8 @@ def lot_embedding(X0,X1,p0,p1,numItermax=100000):
 #     norm2=np.sum((U1.T)**2*p1_hat[domain])
 #     return norm2
 
-def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000):
+#@nb.jit()
+def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000,numThreads=10):
     n,d=X.shape
     m=Y.shape[0]
     mass_mu=np.sum(mu)
@@ -148,7 +151,10 @@ def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000):
     cost_M=cost_matrix_d(X,Y)
     cost_M1=np.zeros((n+1,m+1))
     cost_M1[0:n,0:m]=cost_M-2*Lambda
-    gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax,numThreads=10)
+    #gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax,numThreads=10)
+    gamma1, cost1, u, v, result_code = emd_c(mu1, nu1, cost_M1, numItermax, numThreads)
+    result_code_string = check_result(result_code)
+    
     gamma=gamma1[0:n,0:m]
     cost=np.sum(cost_M*gamma)
     #destroyed_mass=np.sum(mu)+np.sum(nu)-2*np.sum(gamma)

@@ -52,6 +52,7 @@ def opt_interpolation(X0,U1,p0,p1_hat,t_list):
     X_d=X0[np.invert(D)]
     pt=p1_hat[D]
     p_d=(p0-p1_hat)[np.invert(D)]
+    
 
     return Xt_list,pt,X_d,p_d
 

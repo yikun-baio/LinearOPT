@@ -34,7 +34,16 @@ def sampling(X_list,N,N0,k):
         sample_list[i*N:(i+1)*N]=X_list[rand_ind]
         i+=1
     return sample_list
-
+        
+@nb.njit(nb.int64[:](nb.int64[:,:]),fastmath=True)
+def gamma_to_T(gamma):
+    n,m=gamma.shape
+    T=np.zeros(n,dtype=np.int64)
+    for i in range(n):
+        ind=np.where(gamma[i,:]==1)[0]
+        if ind.shape[0]==1:
+            T[i]=ind[0]
+    return T
 
 
 def scatter_2d(Xt, pt, X_d=np.array([]), p_d=0, X_c=np.array([]), p_c=0, xlim=None, ylim=None, color='blue', marker='o', name=None, Type=1):
