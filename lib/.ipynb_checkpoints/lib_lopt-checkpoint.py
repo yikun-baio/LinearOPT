@@ -170,6 +170,7 @@ def opt_pr(X,Y,mu,nu,mass,numItermax=100000):
     cost=np.sum(cost_M*gamma)
     return cost,gamma
 
+
 def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000):
     n,d=X0.shape
     cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda,numItermax=numItermax)
@@ -184,7 +185,8 @@ def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000):
     # separate barycentric into U_1 and p1_hat,M1
     U1=X1_hat-X0
     M1=np.sum(p1)-np.sum(p1_hat)
-    return U1,p1_hat,M1
+    p1_perp=p1-np.sum(gamma,0)
+    return U1,p1_hat,M1,p1_perp
 
 def lopt_embedding_pr(Xi,X0,p1,p0,Lambda):
     n,d=X0.shape
