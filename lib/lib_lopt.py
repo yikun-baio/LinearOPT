@@ -124,6 +124,7 @@ def cost_matrix_d(X,Y):
 def lot_embedding(X0,X1,p0,p1,numItermax=100000):
     C=cost_matrix_d(X0,X1)
     #gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    numThreads=10
     Gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
     result_code_string = check_result(result_code)
     N0,d=X0.shape
