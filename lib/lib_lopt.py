@@ -259,7 +259,7 @@ def lopt_barycenter(Xi_list,pi_list,X0_init,p0, weights,Lambda, numItermax=10000
         for i in range(K):
             Xi=Xi_list[i]
             pi=pi_list[i]
-            Ui,pi_hat,Mi=lopt_embedding(X0,Xi,p0,pi,Lambda,numItermax=numThreads,numThreads=numThreads)
+            Ui,pi_hat,Mi,nu_perp=lopt_embedding(X0,Xi,p0,pi,Lambda,numItermax=numItermax,numThreads=numThreads)
             Ui_list[i]=Ui
         U_bar=np.sum(Ui_list*weights,0)
         X_bar=X0+U_bar    
