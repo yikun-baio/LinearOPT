@@ -121,12 +121,12 @@ def cost_matrix_d(X,Y):
     return M
 
 #@nb.jit()
-def lot_embedding(X0,X1,p0,p1,numItermax=100000):
+def lot_embedding(X0,X1,p0,p1,numItermax=100000,numThreads=10):
     C=cost_matrix_d(X0,X1)
-    #gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
-    numThreads=10
-    Gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
-    result_code_string = check_result(result_code)
+    #C = np.asarray(C, dtype=np.float64, order='C')
+    gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    #gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
+    #result_code_string = check_result(result_code)
     N0,d=X0.shape
     X1_hat=gamma.dot(X1)/np.expand_dims(p0,1)
     U1=X1_hat-X0
@@ -152,6 +152,7 @@ def opt_lp(X,Y,mu,nu,Lambda,numItermax=100000,numThreads=10):
     cost_M=cost_matrix_d(X,Y)
     cost_M1=np.zeros((n+1,m+1))
     cost_M1[0:n,0:m]=cost_M-2*Lambda
+    cost_M1 = np.asarray(cost_M1, dtype=np.float64, order='C')
     #gamma1=ot.lp.emd(mu1,nu1,cost_M1,numItermax=numItermax,numThreads=10)
     gamma1, cost1, u, v, result_code = emd_c(mu1, nu1, cost_M1, numItermax, numThreads)
     result_code_string = check_result(result_code)
@@ -172,9 +173,9 @@ def opt_pr(X,Y,mu,nu,mass,numItermax=100000):
     return cost,gamma
 
 
-def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000):
+def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000,numThreads=10):
     n,d=X0.shape
-    cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda,numItermax=numItermax)
+    cost,gamma,penualty=opt_lp(X0,X1,p0,p1,Lambda,numItermax=numItermax,numThreads=10)
 #   cost,plan=opt_pr()
     N0=X0.shape[0]
     domain=np.sum(gamma,1)>1e-10
@@ -225,7 +226,7 @@ def lopt(U1,U2,p1_hat,p2_hat,Lambda,M1=.0,M2=.0):
     
    
 
-def lot_barycenter(Xi_list,pi_list,X0_init,p0, weights, numItermax=100000,numItermax_LP=100000,stopThr=1e-7):
+def lot_barycenter(Xi_list,pi_list,X0_init,p0, weights, numItermax=100000,stopThr=1e-7,numThreads=10):
     K=weights.shape[0]
     N0,d=X0_init.shape
     Ui_list=np.zeros((K,N0,d))
@@ -236,7 +237,7 @@ def lot_barycenter(Xi_list,pi_list,X0_init,p0, weights, numItermax=100000,numIte
         for i in range(K):
             Xi=Xi_list[i]
             pi=pi_list[i]
-            Ui=lot_embedding(X0,Xi,p0,pi,numItermax=numItermax_LP)
+            Ui=lot_embedding(X0,Xi,p0,pi,numItermax=numItermax,numThreads=numThreads)
             Ui_list[i]=Ui
         U_bar=np.sum(Ui_list*weights,0)
         X_bar=X0+U_bar    
@@ -247,7 +248,7 @@ def lot_barycenter(Xi_list,pi_list,X0_init,p0, weights, numItermax=100000,numIte
         
     return X0
 
-def lopt_barycenter(Xi_list,pi_list,X0_init,p0, weights,Lambda, numItermax=100000,numItermax_LP=100000,stopThr=1e-4, numThreads=1):
+def lopt_barycenter(Xi_list,pi_list,X0_init,p0, weights,Lambda, numItermax=100000,stopThr=1e-4, numThreads=10):
     K=weights.shape[0]
     N0,d=X0_init.shape
     Ui_list=np.zeros((K,N0,d))
@@ -258,7 +259,7 @@ def lopt_barycenter(Xi_list,pi_list,X0_init,p0, weights,Lambda, numItermax=10000
         for i in range(K):
             Xi=Xi_list[i]
             pi=pi_list[i]
-            Ui,pi_hat,Mi=lopt_embedding(X0,Xi,p0,pi,Lambda,numItermax=numItermax_LP)
+            Ui,pi_hat,Mi=lopt_embedding(X0,Xi,p0,pi,Lambda,numItermax=numThreads,numThreads=numThreads)
             Ui_list[i]=Ui
         U_bar=np.sum(Ui_list*weights,0)
         X_bar=X0+U_bar    
