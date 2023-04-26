@@ -64,7 +64,7 @@ def lopt_interpolation(X0,U1,U2,p1_hat,p2_hat,t_list):
     p12_hat=np.minimum(p1_hat,p2_hat)
     D1=p1_hat>0
     D2=p2_hat>0
-    D12=p12_hat>0
+    D12=np.logical_and(D1, D2)
     
     D_d=np.logical_and(D1, np.invert(D12))
     D_c=np.logical_and(D2, np.invert(D12)) # domain of desrtoyed point
