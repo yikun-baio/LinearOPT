@@ -15,9 +15,10 @@ where $\Pi_{\leq}(\mu^0,\mu^1)=\{\gamma\in \mathcal{M}_+(\Omega^2): \gamma_0\leq
 # Outline of repository
 - lib/lin_lopt.py contains a simple OPT solver based on LP in [PythonOT](https://pythonot.github.io/), basic implementations for linearized OT and OPT embeddings, and a OT barycenter solver. 
 - lib/geodesic.py contains basic implementations for OT geodesic, LOT geodesic, OPT interporlation and LOPT interporlation. 
+- lib/HK contains the LHK implementations from [Linear Hellinger Kantorovich](https://github.com/bernhard-schmitzer/UnbalancedLOT).
 
 # Examples: 
 - Run accuracy_test.ipynb to see the accuracy performance of LOPT distance. 
 - Run wall_clock_time.ipynb to see the wall clock test of OPT and LOPT. 
-- Run geodesic_MNIST.ipynb to see the comparison between OT geodesic, LOT geodesic, OPT interpolation, LOPT interporlations on MNIST data. 
+- Run Interporlation.ipynb to see the comparison between OT geodesic, LOT geodesic, OPT interpolation, LOPT interporlations on MNIST data. 
 - Run pca.ipynb to see the comparison between LOT embeddings and LOPT embeddings 
