@@ -2,4 +2,6 @@ experiment/data/MNIST/test.csv
 experiment/data/MNIST/train.csv
 experiment/data/MNIST/test_list.pt
 experiment/data/MNIST/train_list.pt
-test.pt
+experiment/data/MNIST/pca.pt
+experiment/data/MNIST/pca_noise.pt
+experiment/data/MNIST/pca_noise_select.pt
