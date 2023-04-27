@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 
 def PCA_numpy(X,k):
+    N,N0,d=X.shape
     K=X.shape[0]
     X=X.reshape(K,-1)
     X_c=X-X.mean(0)
