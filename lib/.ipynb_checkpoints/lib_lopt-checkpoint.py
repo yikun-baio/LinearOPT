@@ -128,8 +128,8 @@ def lot_embedding(X0,X1,p0,p1,numItermax=100000,numThreads=10):
     p0=np.ascontiguousarray(p0)
     p1=np.ascontiguousarray(p1)
     C=cost_matrix_d(X0,X1)
-    #gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
-    gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
+    gamma=ot.lp.emd(p0,p1,C,numItermax=numItermax,numThreads=10) # exact linear program
+    #gamma, cost, u, v, result_code = emd_c(p0, p1, C, numItermax, numThreads)
     #result_code_string = check_result(result_code)
     N0,d=X0.shape
     X1_hat=gamma.dot(X1)/np.expand_dims(p0,1)
@@ -184,7 +184,7 @@ def lopt_embedding(X0,X1,p0,p1,Lambda,numItermax=100000,numThreads=10):
     X1_hat=X0.copy() 
     X1_hat[domain]=gamma.dot(X1)[domain]/np.expand_dims(p1_hat,1)[domain]
     
-    # separate barycentric into U_1 and p1_hat,M1
+    # separate barycentric projection into U_1 and p1_hat,M1
     U1=X1_hat-X0
     M1=np.sum(p1)-np.sum(p1_hat)
     p1_perp=p1-np.sum(gamma,0)
@@ -196,7 +196,7 @@ def lopt_embedding_pr(Xi,X0,p1,p0,Lambda):
     n=X0.shape[0]
     domain=np.sum(gamma,1)>1e-10
     p1_hat=np.sum(gamma,1)
-    Xi_hat=np.full((n,d),np.inf)
+    Xi_hat=np.full((n,d),0)
     Xi_hat[domain]=gamma.dot(Xi)[domain]/np.expand_dims(p1_hat,1)[domain]
     U1=Xi_hat-X0
     return U1,p1_hat
