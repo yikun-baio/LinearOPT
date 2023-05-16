@@ -13,8 +13,9 @@ import matplotlib.pyplot as plt
 
 
 def PCA_numpy(X,k):
-    K=X.shape[0]
-    X=X.reshape(K,-1)
+    N,N0,d=X.shape
+    N=X.shape[0]
+    X=X.reshape(N,-1)
     X_c=X-X.mean(0)
     Cov=np.cov(X_c.T)*(N-1)/N
     eig,V=np.linalg.eig(Cov)
